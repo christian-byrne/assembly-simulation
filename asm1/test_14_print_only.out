@@ -1,0 +1,19 @@
+jan: -5
+feb: -10
+mar: 0
+apr: 5
+may: 10
+jun: 15
+
+
+Testcase Variable Dump:
+-5
+-10
+0
+5
+10
+15
+0
+0
+0
+1
