@@ -2,13 +2,16 @@
     #   Christian Byrne
     #
     # PROGRAM DESCRIPTION:
-    #   This program can complete four different tasks:
-    #   finding the minimum value of six given variables, negating the
-    #   values of the six given variables, printing the even values of the
-    #   six given variables, and printing the values of the six given
-    #   variables. The program uses a series of if-else statements to
-    #   determine which task to complete. The program uses the MIPS assembly
-    #   language and is designed to be run on the MARS MIPS simulator.
+    #   This program completes three different tasks:
+    #   1. Printing a list of integers, either based on length or using
+    #      a null terminator as a stopping point.
+    #   2. Printing each word from a given string after replacing spaces
+    #      with null terminators. The program counts the words as it processes
+    #      them and prints the total word count at the end.
+    #   3. Sorting an array of integers using the bubble sort algorithm.
+    #      The program uses conditional checks to determine which task to
+    #      perform. The program is written in MIPS assembly and is designed
+    #      to run on the MARS MIPS simulator.
     #
     # REGISTERS
     #   s0 — jan
@@ -25,14 +28,16 @@
 
 .data
 newLine:            .asciiz "\n"
-printUnknownSuffix: .asciiz " an unknown number of elements. Will stop at a zero element.\n"
+printUnknownSuffix: .asciiz "an unknown number of elements.  Will stop at a zero element.\n"
 printPrefix:        .asciiz "printInts: About to print "
 printKnownSuffix:   .asciiz " elements.\n"
-space:              .asciiz " "
-nullTerminator:     .asciiz "\0"
 printWordsPrefix:   .asciiz "printWords: There were "
 printWordsSuffix:   .asciiz " words.\n"
 swapMessagePrefix:  .asciiz "Swap at: "
+
+space:              .byte   0x20                                                                # ASCII value for ' '
+nullTerminator:     .byte   0x00                                                                # Null terminator character '\0'
+
 
 .text
                     .globl  studentMain
@@ -93,6 +98,12 @@ taskPrintInts:
     lb      $t0,            0($t0)                                                              # t0 = tprintInts
     beq     $t0,            $zero,                  taskPrintWords                              # if printInts == 0, jump to taskPrintWords (next task)
 
+    # Print the prefix message
+    la      $a0,            printPrefix                                                         # a0 = &printPrefix
+    addi    $v0,            $zero,                  4                                           # set syscall to print string
+    syscall                                                                                     # print the string
+
+    la      $s1,            intsArray                                                           # s1 = &intsArray
     la      $t0,            printInts_howToFindLen                                              # t0 = &printInts_howToFindLen
     lh      $t0,            0($t0)                                                              # t0 = printInts_howToFindLen
 
@@ -100,20 +111,17 @@ taskPrintInts:
     beq     $t0,            $t1,                    getCountNullTerminator
     beq     $t0,            $zero,                  getCountIntLengthsVariable                  # if printInts_howToFindLen == 0, jump to taskPrintIntsLength
 
-
 getCountPointerSubtraction:
     # Get the length of the array by subtracting the end of the array from the start of the array
     # ```c
     #             count = intsArray_END - intsArray;
     # ```
 
-    la      $s1,            intsArray                                                           # s1 = &intsArray
     la      $t3,            intsArray_END                                                       # t3 = &intsArray_END
     sub     $t4,            $t3,                    $s1                                         # array length = $t4 = intsArray_END - intsArray
     sra     $s0,            $t4,                    2                                           # divide by 4 by shifting right 2 bits, store in s0
 
     j       printCount                                                                          # jump to printCount
-
 
 getCountIntLengthsVariable:
     # Get the length of the array from the intsArray_len variable
@@ -136,6 +144,9 @@ getCountNullTerminator:
     #             cur++;
     #         }
     # ```
+    #
+    # REGISTERS
+    #   $t3    will store the index of the current element
 
     add     $t3,            $zero,                  $s1                                         # t3 = s1 = &intsArray
 
@@ -147,8 +158,8 @@ getCountNullTerminator:
 whileLoop:
     # Iterate through the array and print each element until we reach a zero element
     lw      $t4,            0($t3)                                                              # t4 = intsArray[i]
-    beq     $t4,            $zero,                  printCount                                  # if t4 == 0, jump to printCount
-    add    $a0,            $t4,                    $zero                                       # a0 = t4 = intsArray[i]
+    beq     $t4,            $zero,                  taskPrintWords                              # if t4 == 0, jump to printCount
+    add     $a0,            $t4,                    $zero                                       # a0 = t4 = intsArray[i]
 
     addi    $v0,            $zero,                  1                                           # set syscall to print integer
     syscall                                                                                     # print the integer
@@ -161,9 +172,6 @@ whileLoop:
 
     j       whileLoop                                                                           # jump to start of loop
 
-    j       taskPrintWords                                                                      # jump to taskPrintWords (next task)
-
-
 printCount:
     # Print `count` elements
     # ```c
@@ -173,10 +181,6 @@ printCount:
     # ```
 
     # Print messaged indicating the number of elements to be printed
-    la      $a0,            printPrefix                                                         # a0 = &printPrefix
-    addi    $v0,            $zero,                  4                                           # set syscall to print string
-    syscall
-
     add     $a0,            $s0,                    $zero                                       # a0 = s0 = count
     addi    $v0,            $zero,                  1                                           # set syscall to print integer
     syscall                                                                                     # print the integer
@@ -185,15 +189,18 @@ printCount:
     addi    $v0,            $zero,                  4                                           # set syscall to print string
     syscall                                                                                     # print the string
 
-forLoop:
-    # Iterate through the array and print each element
     addi    $t0,            $zero,                  0                                           # t0 = 0, Set the index to 0
 
+forLoop:
+    # Iterate through the array and print each element
     slt     $t6,            $t0,                    $s0                                         # t1 = 1 if index < count else 0
     beq     $t6,            $zero,                  taskPrintWords                              # if t6 == 0, we are at the end of the array, jump to taskPrintWords (next task)
 
-    add     $t1,            $s1,                    $t0                                         # t1 = s1 + t0 = &intsArray[i]
-    add     $a0,            $t1,                    $zero                                       # a0 = t1 = &intsArray[i]
+    sll     $t7,            $t0,                    2                                           # t7 = t0 * 4
+    add     $t7,            $t7,                    $s1                                         # t7 = s1 + t0 = &intsArray[i]
+    lw      $t8,            0($t7)                                                              # t8 = intsArray[i]
+
+    add     $a0,            $t8,                    $zero                                       # a0 = t8 = intsArray[i]
     addi    $v0,            $zero,                  1                                           # set syscall to print integer
     syscall                                                                                     # print the integer
 
@@ -201,6 +208,10 @@ forLoop:
     la      $a0,            newLine                                                             # a0 = &newLine
     addi    $v0,            $zero,                  4                                           # set syscall to print string
     syscall                                                                                     # print the string
+
+    addi    $t0,            $t0,                    1                                           # increment t0 by 1
+    j       forLoop                                                                             # jump to start of loop
+
 
     # ----------------------------- Task: Print Words -----------------------------
 
@@ -240,19 +251,21 @@ taskPrintWords:
     lb      $t0,            0($t0)                                                              # t0 = taskPrintWords
     beq     $t0,            $zero,                  taskBubbleSort                              # if taskPrintWords == 0, jump to bubbleSort (next task)
 
-
-    # Initialize the required strings and variables
     la      $s3,            theString                                                           # t0 = &theString
+
+    # Initialize null terminator and space strings
     la      $s4,            space                                                               # t0 = &space
+    lb      $s4,            0($s4)                                                              # s4 = space
     la      $s5,            nullTerminator                                                      # t0 = &nullTerminator
+    lb      $s5,            0($s5)                                                              # s5 = nullTerminator
 
     add     $t1,            $s3,                    $zero                                       # t1 = t0 = &theString
     addi    $s6,            $zero,                  1                                           # s6 = 1
 
 whileLoopWords:
     # Iterate through the string and count the number of words
-    lw      $t2,            0($t1)                                                              # t2 = theString[i]
-    beq     $t2,            $s5,                    taskPrintWordsCount                         # if t2 == null terminator, jump to taskPrintWordsCount
+    lb      $t2,            0($t1)                                                              # t2 = theString[i]
+    beq     $t2,            $s5,                    printWordsCount                             # if t2 == null terminator, jump to taskPrintWordsCount
     beq     $t2,            $s4,                    isSpace                                     # if t2 == space, jump to isSpace
     j       isSpaceAfter                                                                        # jump to isSpaceAfter
 
@@ -261,13 +274,13 @@ isSpace:
     addi    $s6,            $s6,                    1                                           # increment s6 by 1
 
     # Change the space to a null terminator
-    sw      $s5,            0($t1)                                                              # theString[i] = null terminator
+    sb      $s5,            0($t1)                                                              # theString[i] = null terminator (replace space with null terminator)
 
 isSpaceAfter:
-    addi    $t1,            $t1,                    4                                           # increment t1 by 4
+    addi    $t1,            $t1,                    1                                           # increment t1 by 1
     j       whileLoopWords                                                                      # jump to start of loop
 
-taskPrintWordsCount:
+printWordsCount:
     # Print the message indicating the number of words
     la      $a0,            printWordsPrefix                                                    # a0 = &printWordsPrefix
     addi    $v0,            $zero,                  4                                           # set syscall to print string
@@ -281,6 +294,9 @@ taskPrintWordsCount:
     addi    $v0,            $zero,                  4                                           # set syscall to print string
     syscall                                                                                     # print the string
 
+    # Decrement the index once
+    addi    $t1,            $t1,                    -1                                          # decrement t1 by 1
+
 loopBackwards:
     # Iterate through the string using the same (already incremeneted) index backwards and print each word
     # ```c
@@ -291,17 +307,30 @@ loopBackwards:
     #         cur--;
     #     }
     # ```
+    slt     $t6,            $t1,                    $s3                                         # Check if t1 < s3 (past the start of the string)
+    bne     $t6,            $zero,                  taskBubbleSort                              # If we've reached the start, jump to bubbleSort
 
-    slt     $t6,            $t1,                    $s3                                         # t6 = 1 if t1 >= s3 else 0
-    bne     $t6,            $zero,                  taskBubbleSort                              # if t6 != 0 (equals 1), then the index is less than the start of the string so break
+    # If we're at the start or the previous character is a null terminator, print the word
+    beq     $t1,            $s3,                    printWord                                   # If we've reached the start of the string, print the word
+    lb      $t7,            -1($t1)                                                             # Load the previous character (t1 - 1)
+    beq     $t7,            $zero,                  printWord                                   # If the previous character is a null terminator, print
 
-    lb      $t2,            0($t1)                                                              # t2 = theString[i]
-    # print the word
-    add     $a0,            $t1,                    $zero                                       # a0 = t1 = &theString[i]
-    addi    $v0,            $zero,                  4                                           # set syscall to print string
-    syscall                                                                                     # print the string
+    addi    $t1,            $t1,                    -1                                          # Decrement pointer by 1 (move backwards)
+    j       loopBackwards                                                                       # Continue looping backwards
 
-    j       loopBackwards                                                                       # jump to start of loop
+printWord:
+    # Print the word starting from $t1
+    add     $a0,            $t1,                    $zero                                       # Load the address of the word into $a0
+    addi    $v0,            $zero,                  4                                           # Set syscall to print string
+    syscall
+
+    # Print the newline character
+    la      $a0,            newLine                                                             # Load the newline character
+    addi    $v0,            $zero,                  4                                           # Set syscall to print string
+    syscall
+
+    addi    $t1,            $t1,                    -1                                          # Decrement pointer by 1
+    j       loopBackwards                                                                       # Continue looping backwards
 
     # ----------------------------- Task: Bubble Sort -----------------------------
 
@@ -407,11 +436,6 @@ incrementOuterLoop:
     # ------------------------------- Epilogue -------------------------------
 
 epilogue:
-    # print final newline to match test expectations
-    # la      $a0,            newLine                                                             # a0 = &newLine
-    # addi    $v0,            $zero,                  4                                           # set syscall to print string
-    # syscall                                                                                     # print the string
-
     lw      $ra,            4($sp)                                                              # get return address from stack
     lw      $fp,            0($sp)                                                              # restore the frame pointer of caller
     addiu   $sp,            $sp,                    24                                          # restore the stack pointer of caller

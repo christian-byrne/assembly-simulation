@@ -1,4 +1,0 @@
- an unknown number of elements. Will stop at a zero element.
-Error in /home/c_byrne/school/courses/csc252-computer_organization/projects/assembly-projects/assembly/asm2/asm2.s line 149: Runtime exception at 0x00400078: address out of range 0x00000000
-
-Processing terminated due to errors.
