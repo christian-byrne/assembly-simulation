@@ -1,0 +1,38 @@
+==============================================
+TEST (printWords_leading_trailing_spaces):
+
+printInts=0
+printWords=1
+bubbleSort=0
+printInts_howToFindLen=0
+intsArray=[]
+intsArray_len=0
+theString="   This is a test string with leading and trailing spaces    "
+
+==============================================
+
+printWords: There were 17 words.
+
+
+
+
+spaces
+trailing
+and
+leading
+with
+string
+test
+a
+is
+This
+
+
+
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[]
+

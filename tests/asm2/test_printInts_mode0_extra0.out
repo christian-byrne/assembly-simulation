@@ -1,0 +1,26 @@
+==============================================
+TEST (printInts_mode0_extra):
+
+printInts=1
+printWords=0
+bubbleSort=0
+printInts_howToFindLen=0
+intsArray=[-5000, -1000, -3000, 2000, -3000]
+intsArray_len=5
+theString="Hello World!"
+
+==============================================
+
+printInts: About to print 5 elements.
+-5000
+-1000
+-3000
+2000
+-3000
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[-5000, -1000, -3000, 2000, -3000]
+Hello World!

@@ -1,0 +1,21 @@
+==============================================
+TEST (bubbleSort_empty.s):
+
+printInts=1
+printWords=0
+bubbleSort=1
+printInts_howToFindLen=1
+intsArray=[]
+intsArray_len=0
+theString="DO NOT TOUCH!"
+
+==============================================
+
+printInts: About to print 0 elements.
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[]
+DO NOT TOUCH!

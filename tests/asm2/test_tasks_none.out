@@ -1,0 +1,20 @@
+==============================================
+TEST (tasks_none):
+
+printInts=0
+printWords=0
+bubbleSort=0
+printInts_howToFindLen=2
+intsArray=[1, 2, 3]
+intsArray_len=3
+theString="DO NOT TOUCH!"
+
+==============================================
+
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[1, 2, 3]
+DO NOT TOUCH!

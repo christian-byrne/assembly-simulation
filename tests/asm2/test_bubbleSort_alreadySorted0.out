@@ -1,0 +1,20 @@
+==============================================
+TEST (bubbleSort_alreadySorted0):
+
+printInts=0
+printWords=0
+bubbleSort=1
+printInts_howToFindLen=0
+intsArray=[-3000, -1000, 2000, 5000, 7000]
+intsArray_len=5
+theString="DO NOT TOUCH!"
+
+==============================================
+
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[-3000, -1000, 2000, 5000, 7000]
+DO NOT TOUCH!

@@ -1,0 +1,21 @@
+==============================================
+TEST (printInts_mode1_extra1):
+
+printInts=1
+printWords=0
+bubbleSort=0
+printInts_howToFindLen=1
+intsArray=[]
+intsArray_len=0
+theString="sometimes i'll hide secret messages in these test cases"
+
+==============================================
+
+printInts: About to print 0 elements.
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[]
+sometimes i'll hide secret messages in these test cases

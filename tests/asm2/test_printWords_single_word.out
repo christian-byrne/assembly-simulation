@@ -1,0 +1,22 @@
+==============================================
+TEST (printWords_single_word):
+
+printInts=0
+printWords=1
+bubbleSort=0
+printInts_howToFindLen=0
+intsArray=[]
+intsArray_len=0
+theString="WelcomeToCSC252"
+
+==============================================
+
+printWords: There were 1 words.
+WelcomeToCSC252
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[]
+WelcomeToCSC252

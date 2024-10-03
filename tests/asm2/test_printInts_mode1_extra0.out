@@ -1,0 +1,42 @@
+==============================================
+TEST (printInts_mode1_extra0):
+
+printInts=1
+printWords=1
+bubbleSort=0
+printInts_howToFindLen=1
+intsArray=[0, 1000, 100, 10, 0, 0, 100, 10]
+intsArray_len=10
+theString="intsArray_len set to 10 is intentionally added to corrupt your program :)"
+
+==============================================
+
+printInts: About to print 8 elements.
+0
+1000
+100
+10
+0
+0
+100
+10
+printWords: There were 12 words.
+:)
+program
+your
+corrupt
+to
+added
+intentionally
+is
+10
+to
+set
+intsArray_len
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[0, 1000, 100, 10, 0, 0, 100, 10]
+intsArray_len

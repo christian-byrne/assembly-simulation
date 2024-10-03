@@ -1,0 +1,54 @@
+==============================================
+TEST (tasks_all1):
+
+printInts=1
+printWords=1
+bubbleSort=1
+printInts_howToFindLen=1
+intsArray=[3, 2, 1]
+intsArray_len=3
+theString="A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"
+
+==============================================
+
+printInts: About to print 3 elements.
+3
+2
+1
+printWords: There were 26 words.
+Z
+Y
+X
+W
+V
+U
+T
+S
+R
+Q
+P
+O
+N
+M
+L
+K
+J
+I
+H
+G
+F
+E
+D
+C
+B
+A
+Swap at: 0
+Swap at: 1
+Swap at: 0
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[1, 2, 3]
+A

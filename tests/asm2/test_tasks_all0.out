@@ -1,0 +1,27 @@
+==============================================
+TEST (tasks_all0):
+
+printInts=1
+printWords=1
+bubbleSort=1
+printInts_howToFindLen=0
+intsArray=[1, 2, 3]
+intsArray_len=3
+theString="Hello World!"
+
+==============================================
+
+printInts: About to print 3 elements.
+1
+2
+3
+printWords: There were 2 words.
+World!
+Hello
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[1, 2, 3]
+Hello

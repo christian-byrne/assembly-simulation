@@ -1,0 +1,43 @@
+==============================================
+TEST (printWords_multipleSpaces):
+
+printInts=0
+printWords=1
+bubbleSort=0
+printInts_howToFindLen=0
+intsArray=[]
+intsArray_len=0
+theString="This    is   a     test string with      multiple spaces"
+
+==============================================
+
+printWords: There were 22 words.
+spaces
+multiple
+
+
+
+
+
+with
+string
+test
+
+
+
+
+a
+
+
+is
+
+
+
+This
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[]
+This

@@ -1,0 +1,22 @@
+==============================================
+TEST (bubbleSort_partial0):
+
+printInts=0
+printWords=0
+bubbleSort=1
+printInts_howToFindLen=0
+intsArray=[45, 78, -23, 11, 69, 45, 8]
+intsArray_len=3
+theString="DO NOT TOUCH!"
+
+==============================================
+
+Swap at: 1
+Swap at: 0
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[-23, 45, 78, 11, 69, 45, 8]
+DO NOT TOUCH!

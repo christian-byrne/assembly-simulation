@@ -1,0 +1,22 @@
+==============================================
+TEST (printInts_mode1_extra2):
+
+printInts=1
+printWords=0
+bubbleSort=0
+printInts_howToFindLen=1
+intsArray=2147483647
+intsArray_len=0
+theString="WHY DOES THE CODE NOT WORK >:("
+
+==============================================
+
+printInts: About to print 1 elements.
+2147483647
+
++-------------------------------+
+|    Testcase Variable Dump:    |
++-------------------------------+
+
+[2147483647]
+WHY DOES THE CODE NOT WORK >:(
