@@ -1,3 +1,8 @@
 **/**.class
 **/todo.md
 **/**.zip
+.vscode
+.trunk
+__pycache__
+**/**.pyc
+**/__pycache__
