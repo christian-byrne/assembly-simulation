@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "sim4.h"
 
 /**
@@ -153,6 +154,19 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
       controlOut->branch = 0;
       controlOut->jump = 0;
       return 1;
+    // nor
+    case 0x27:
+      controlOut->ALU.op = 0x05;
+      controlOut->ALU.bNegate = 0;
+      controlOut->ALUsrc = 0;
+      controlOut->memRead = 0;
+      controlOut->memWrite = 0;
+      controlOut->memToReg = 0;
+      controlOut->regDst = 1;
+      controlOut->regWrite = 1;
+      controlOut->branch = 0;
+      controlOut->jump = 0;
+      return 1;
     // slt
     case 0x2A:
       controlOut->ALU.op = 0x03;
@@ -170,6 +184,32 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
       return 0;
     }
     break;
+  // j
+  case 0x02:
+    controlOut->ALU.op = 0x00;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 0;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 0;
+    controlOut->branch = 0;
+    controlOut->jump = 1;
+    return 1;
+  // beq
+  case 0x04:
+    controlOut->ALU.op = 0x02;
+    controlOut->ALU.bNegate = 1;
+    controlOut->ALUsrc = 0;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 0;
+    controlOut->branch = 1;
+    controlOut->jump = 0;
+    return 1;
   // addi
   case 0x08:
     controlOut->ALU.op = 0x02;
@@ -235,6 +275,21 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->regWrite = 1;
     controlOut->branch = 0;
     controlOut->jump = 0;
+    controlOut->extra1 = 0;
+    return 1;
+  // sb
+  case 0x28:
+    controlOut->ALU.op = 0x02;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 1;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 1;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 0;
+    controlOut->branch = 0;
+    controlOut->jump = 0;
+    controlOut->extra1 = 1;
     return 1;
   // sw
   case 0x2B:
@@ -248,32 +303,7 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->regWrite = 0;
     controlOut->branch = 0;
     controlOut->jump = 0;
-    return 1;
-  // beq
-  case 0x04:
-    controlOut->ALU.op = 0x02;
-    controlOut->ALU.bNegate = 1;
-    controlOut->ALUsrc = 0;
-    controlOut->memRead = 0;
-    controlOut->memWrite = 0;
-    controlOut->memToReg = 0;
-    controlOut->regDst = 0;
-    controlOut->regWrite = 0;
-    controlOut->branch = 1;
-    controlOut->jump = 0;
-    return 1;
-  // j
-  case 0x02:
-    controlOut->ALU.op = 0x00;
-    controlOut->ALU.bNegate = 0;
-    controlOut->ALUsrc = 0;
-    controlOut->memRead = 0;
-    controlOut->memWrite = 0;
-    controlOut->memToReg = 0;
-    controlOut->regDst = 0;
-    controlOut->regWrite = 0;
-    controlOut->branch = 0;
-    controlOut->jump = 1;
+    controlOut->extra1 = 0;
     return 1;
   default:
     return 0;
@@ -414,6 +444,10 @@ void execute_ALU(CPUControl *controlIn,
     aluResultOut->result = input1 ^ input2;
     aluResultOut->extra = 0;
     break;
+  // nor
+  case 0x05:
+    aluResultOut->result = ~(input1 | input2);
+    aluResultOut->extra = 0;
   }
 
   // The zero flag is set to 1 if the result is zero, otherwise it is set to 0.
@@ -442,16 +476,71 @@ void execute_MEM(CPUControl *controlIn,
                  WORD *memory,
                  MemResult *resultOut)
 {
-  // If memRead asserted, get value at address calculated by ALU, otherwise 0.
-  if (controlIn->memRead)
+  // If memWrite asserted, write rtVal to address calculated by ALU.
+  if (controlIn->memWrite && !controlIn->memRead)
   {
     switch (controlIn->extra1)
     {
     case 0:
-      resultOut->readVal = memory[aluResultIn->result >> 2];
+      // For operations w/ addresses, rt val will hold the value to be stored.
+      memory[aluResultIn->result >> 2] = rtVal;
       break;
-    case 1: // if extra1 is asserted, read and extract the byte
+    case 1: // if extra1 asserted, use byte instead of word.
+      WORD wordAtAddress = memory[aluResultIn->result >> 2];
+      // The last 2 bits of the calculated address will indicate which byte to
+      // extract from the loaded word.
       WORD byteIndex = aluResultIn->result & 0x3;
+
+      // Create a mask to zero out the location in the word where the byte will
+      // be inserted.
+      int shiftCount;
+      WORD byteMask;
+      switch (byteIndex)
+      {
+      case 0b00:
+        byteMask = 0xFFFFFF00;
+        shiftCount = 0;
+        break;
+      case 0b01:
+        byteMask = 0xFFFF00FF;
+        shiftCount = 1;
+        break;
+      case 0b10:
+        byteMask = 0xFF00FFFF;
+        shiftCount = 2;
+        break;
+      case 0b11:
+        byteMask = 0x00FFFFFF;
+        shiftCount = 3;
+        break;
+      }
+
+      // Shift the byte to the correct position in the word.
+      WORD shiftedByte = rtVal << (shiftCount * 8);
+
+      // Insert the byte into the word.
+      WORD wordWithByteInserted = (wordAtAddress & byteMask) | shiftedByte;
+
+      // Write the word back to memory.
+      memory[aluResultIn->result >> 2] = wordWithByteInserted;
+    }
+  }
+
+  // If memRead asserted, get value at address calculated by ALU, otherwise 0.
+  if (controlIn->memRead)
+  {
+    WORD wordAtAddress = memory[aluResultIn->result >> 2];
+    switch (controlIn->extra1)
+    {
+    case 0:
+      // printf("Reading word at address %d: %d\n", aluResultIn->result >> 2, wordAtAddress);
+      resultOut->readVal = wordAtAddress;
+      break;
+    case 1: // if extra1 is asserted, use byte instead of word.
+      // The last 2 bits of the calculated address will indicate which byte to
+      // extract from the loaded word.
+      WORD byteIndex = aluResultIn->result & 0x3;
+
       int shiftCount;
       switch (byteIndex)
       {
@@ -468,21 +557,20 @@ void execute_MEM(CPUControl *controlIn,
         shiftCount = 3;
         break;
       }
-      resultOut->readVal = (memory[aluResultIn->result >> 2] >> (shiftCount*4)) & 0x000F;
+
+      // Extract the byte from the word by shifting the word right by the
+      // byte index * 8 (byte size).
+      WORD byteAtAddress = (wordAtAddress >> (shiftCount * 8)) & 0xFF;
+
+      // Sign-extend if negative.
+      bool isNegative = byteAtAddress & 0x80 != 0;
+      resultOut->readVal = isNegative ? byteAtAddress | 0xFFFFFF00 : byteAtAddress;
     }
-    return;
   }
   else
   {
     // Set readVal to 0 when nothing happens.
     resultOut->readVal = 0;
-  }
-
-  // If memWrite asserted, write rtVal to address calculated by ALU.
-  if (controlIn->memWrite)
-  {
-    // For operations w/ addresses, rt val will hold the value to be stored.
-    memory[aluResultIn->result >> 2] = rtVal;
   }
 }
 
@@ -545,7 +633,7 @@ void execute_updateRegs(InstructionFields *fields, CPUControl *controlIn,
   if (controlIn->memToReg) // If memToReg, write value from memory.
   {
     // Sign-extend the 16-bit value from memory to 32 bits before writing.
-    regs[registerDestinationNumber] = signExtend16to32(memResultIn->readVal);
+    regs[registerDestinationNumber] = memResultIn->readVal;
   }
   else if (controlIn->regWrite) // If regWrite and not memToReg, write ALU result.
   {

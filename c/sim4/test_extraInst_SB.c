@@ -57,7 +57,7 @@ int main()
 
 	// print_int($t0)
 	cpuState.instMemory[0x114] = ADDI(V_REG(0), REG_ZERO, 1);
-	cpuState.instMemory[0x115] = ADD (A_REG(0), T_REG(0), REG_ZERO);
+	cpuState.instMemory[0x115] = ADD(A_REG(0), T_REG(0), REG_ZERO);
 	cpuState.instMemory[0x116] = SYSCALL();
 
 	// print_char('\n')
