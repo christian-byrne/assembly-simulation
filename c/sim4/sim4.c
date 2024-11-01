@@ -3,6 +3,11 @@
  * @brief Simulates a MIPS processor with a 32-bit instruction set.
  * @author Christian Byrne
  * @date 2024-11-01
+ *
+ * Modifications made to the standard design:
+ *  cpu control bits:
+ *    extra1: asserted -> load/store bytes instead of words
+ *    extra2: asserted -> don't sign extend immediate values
  */
 
 #include <stdio.h>
@@ -249,6 +254,48 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->branch = 0;
     controlOut->jump = 0;
     return 1;
+  // andi
+  case 0x0c:
+    controlOut->ALU.op = 0x00;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 1;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 1;
+    controlOut->branch = 0;
+    controlOut->jump = 0;
+    controlOut->extra2 = 1;
+    return 1;
+  // ori
+  case 0x0d:
+    controlOut->ALU.op = 0x01;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 1;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 1;
+    controlOut->branch = 0;
+    controlOut->jump = 0;
+    controlOut->extra2 = 1;
+    return 1;
+  // xori
+  case 0x0e:
+    controlOut->ALU.op = 0x04;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 1;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 1;
+    controlOut->branch = 0;
+    controlOut->jump = 0;
+    controlOut->extra2 = 1;
+    return 1;
   // lb
   case 0x20:
     controlOut->ALU.op = 0x02;
@@ -378,7 +425,7 @@ WORD getALUinput2(CPUControl *controlIn,
   case 1:
     // When ALUsrc asserted, the 2nd ALU operand is the sign-extended, lower
     // 16 bits of the instruction.
-    return fieldsIn->imm32;
+    return controlIn->extra2 ? fieldsIn->imm16 : fieldsIn->imm32;
   }
 }
 
@@ -414,7 +461,7 @@ void execute_ALU(CPUControl *controlIn,
   // Negate the second input operand if the bNegate flag is set.
   if (controlIn->ALU.bNegate)
   {
-    input2 = ~input2 + 0x1;
+    input2 = ~input2 + 0b1;
   }
 
   switch (controlIn->ALU.op)
