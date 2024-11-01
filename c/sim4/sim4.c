@@ -5,9 +5,16 @@
  * @date 2024-11-01
  *
  * Modifications made to the standard design:
- *  cpu control bits:
- *    extra1: asserted -> load/store bytes instead of words
- *    extra2: asserted -> don't sign extend immediate values
+ *  New Control Bits:
+ *    extra1: asserted ->
+ *      load/store bytes instead of words,
+ *      write to upper halfword of reg,
+ *      if using hi/lo, use hi for rt register
+ *    extra2: asserted ->
+ *      don't sign extend immediate values,
+ *    extra3: asserted ->
+ *      use hi/lo for rs register
+ *
  */
 
 #include <stdio.h>
@@ -39,24 +46,6 @@ void extract_instructionFields(WORD instruction, InstructionFields *fieldsOut)
 /**
  * @brief the CPUControl structure based on the provided instruction fields.
  *
- * Handles the following instructions:
- *  | Instruction | Opcode | Function | Type |
- *  |-------------|--------|----------|------|
- *  | addu        | 000000 | 100001   | R    |
- *  | sub         | 000000 | 100010   | R    |
- *  | subu        | 000000 | 100011   | R    |
- *  | addi        | 001000 |          | I    |
- *  | addiu       | 001001 |          | I    |
- *  | and         | 000000 | 100100   | R    |
- *  | or          | 000000 | 100101   | R    |
- *  | xor         | 000000 | 100110   | R    |
- *  | slt         | 000000 | 101010   | R    |
- *  | slti        | 001010 |          | I    |
- *  | lw          | 100011 |          | I    |
- *  | sw          | 101011 |          | I    |
- *  | beq         | 000100 |          | I    |
- *  | j           | 000010 |          | J    |
- *
  * @param fields A pointer to the InstructionFields structure containing the parsed instruction fields.
  * @param controlOut A pointer to the CPUControl structure that will be filled based on the instruction fields.
  * @return An integer indicating the success or failure of the operation.
@@ -68,6 +57,51 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
   case 0x00:
     switch (fields->funct)
     {
+    // mfhi (move from hi)
+    case 0x10:
+      controlOut->ALU.op = 0x08;
+      controlOut->ALU.bNegate = 0;
+      controlOut->ALUsrc = 0;
+      controlOut->memRead = 0;
+      controlOut->memWrite = 0;
+      controlOut->memToReg = 0;
+      controlOut->regDst = 1;
+      controlOut->regWrite = 1;
+      controlOut->branch = 0;
+      controlOut->jump = 0;
+      controlOut->extra1 = 1;
+      controlOut->extra3 = 1;
+      return 1;
+    // mflo (move from lo)
+    case 0x12:
+      controlOut->ALU.op = 0x08;
+      controlOut->ALU.bNegate = 0;
+      controlOut->ALUsrc = 0;
+      controlOut->memRead = 0;
+      controlOut->memWrite = 0;
+      controlOut->memToReg = 0;
+      controlOut->regDst = 1;
+      controlOut->regWrite = 1;
+      controlOut->branch = 0;
+      controlOut->jump = 0;
+      controlOut->extra1 = 0;
+      controlOut->extra3 = 1;
+      return 1;
+    // mult
+    case 0x18:
+      controlOut->ALU.op = 0x07;
+      controlOut->ALU.bNegate = 0;
+      controlOut->ALUsrc = 0;
+      controlOut->memRead = 0;
+      controlOut->memWrite = 0;
+      controlOut->memToReg = 0;
+      controlOut->regDst = 0;
+      controlOut->regWrite = 1;
+      controlOut->branch = 0;
+      controlOut->jump = 0;
+      controlOut->extra2 = 1;
+      controlOut->extra3 = 1;
+      return 1;
     // add
     case 0x20:
       controlOut->ALU.op = 0x02;
@@ -215,6 +249,19 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->branch = 1;
     controlOut->jump = 0;
     return 1;
+  // bne
+  case 0x05:
+    controlOut->ALU.op = 0x06;
+    controlOut->ALU.bNegate = 1;
+    controlOut->ALUsrc = 0;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 0;
+    controlOut->branch = 1;
+    controlOut->jump = 0;
+    return 1;
   // addi
   case 0x08:
     controlOut->ALU.op = 0x02;
@@ -240,6 +287,7 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->regWrite = 1;
     controlOut->branch = 0;
     controlOut->jump = 0;
+    controlOut->extra2 = 1;
     return 1;
   // slti
   case 0x0A:
@@ -309,7 +357,20 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->branch = 0;
     controlOut->jump = 0;
     controlOut->extra1 = 1;
-    // controlOut->extra2 = 1;
+    return 1;
+  // mul
+  case 0x1c:
+    controlOut->ALU.op = 0x07;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 0;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 1;
+    controlOut->regWrite = 1;
+    controlOut->branch = 0;
+    controlOut->jump = 0;
+    // controlOut->extra1 = 1;
     return 1;
   // lb
   case 0x20:
@@ -408,6 +469,10 @@ WORD getALUinput1(CPUControl *controlIn,
                   WORD rsVal, WORD rtVal, WORD reg32, WORD reg33,
                   WORD oldPC)
 {
+  if (controlIn->extra3 && !controlIn->extra2)
+  {
+    return controlIn->extra1 ? reg32 : reg33;
+  }
   // The 1st ALU operand comes from the first register file output (Read data 1).
   // It is always the value in the rs field of the instruction.
   return rsVal;
@@ -510,6 +575,27 @@ void execute_ALU(CPUControl *controlIn,
   case 0x05:
     aluResultOut->result = ~(input1 | input2);
     aluResultOut->extra = 0;
+    break;
+  // seq (set on equal)
+  case 0x06:
+    aluResultOut->result = input1 != input2 ? 0 : 1;
+    aluResultOut->extra = 0;
+    break;
+  // mult
+  case 0x07:
+    // Cast and multiply the inputs as 64-bit integers to prevent overflow.
+    long long product = (long long)input1 * (long long)input2;
+
+    // Store the upper and lower 32 bits of the product in the result and
+    // extra fields.
+    aluResultOut->result = (product >> 32) & 0xFFFFFFFF;
+    aluResultOut->extra = (product & 0x00000000FFFFFFFF);
+    break;
+  // move
+  case 0x08:
+    aluResultOut->result = input1;
+    aluResultOut->extra = input2;
+    break;
   }
 
   // The zero flag is set to 1 if the result is zero, otherwise it is set to 0.
@@ -698,9 +784,22 @@ void execute_updateRegs(InstructionFields *fields, CPUControl *controlIn,
   }
   else if (controlIn->regWrite) // If regWrite and not memToReg, write ALU result.
   {
+    // If extra3 is asserted, use hi/lo for rs register.
+    if (controlIn->extra3)
+    {
+      if (controlIn->extra2)
+      {
+        regs[32] = (aluResultIn->result) & 0xFFFFFFFF;
+        regs[33] = (aluResultIn->extra) & 0xFFFFFFFF;
+      }
+      else
+      {
+        regs[registerDestinationNumber] = aluResultIn->result;
+      }
+    }
     // If extra1 is asserted, load the lower halfword of ALU result (imm16 + 0)
     // into the upper halfword of the register.
-    if (controlIn->extra1)
+    else if (controlIn->extra1)
     {
       regs[registerDestinationNumber] = (aluResultIn->result << 16) & 0xFFFF0000;
     }
