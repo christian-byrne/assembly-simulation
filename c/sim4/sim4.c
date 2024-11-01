@@ -296,6 +296,21 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->jump = 0;
     controlOut->extra2 = 1;
     return 1;
+  // lui
+  case 0x0f:
+    controlOut->ALU.op = 0x01;
+    controlOut->ALU.bNegate = 0;
+    controlOut->ALUsrc = 1;
+    controlOut->memRead = 0;
+    controlOut->memWrite = 0;
+    controlOut->memToReg = 0;
+    controlOut->regDst = 0;
+    controlOut->regWrite = 1;
+    controlOut->branch = 0;
+    controlOut->jump = 0;
+    controlOut->extra1 = 1;
+    // controlOut->extra2 = 1;
+    return 1;
   // lb
   case 0x20:
     controlOut->ALU.op = 0x02;
@@ -679,11 +694,19 @@ void execute_updateRegs(InstructionFields *fields, CPUControl *controlIn,
 
   if (controlIn->memToReg) // If memToReg, write value from memory.
   {
-    // Sign-extend the 16-bit value from memory to 32 bits before writing.
     regs[registerDestinationNumber] = memResultIn->readVal;
   }
   else if (controlIn->regWrite) // If regWrite and not memToReg, write ALU result.
   {
-    regs[registerDestinationNumber] = aluResultIn->result;
+    // If extra1 is asserted, load the lower halfword of ALU result (imm16 + 0)
+    // into the upper halfword of the register.
+    if (controlIn->extra1)
+    {
+      regs[registerDestinationNumber] = (aluResultIn->result << 16) & 0xFFFF0000;
+    }
+    else
+    {
+      regs[registerDestinationNumber] = aluResultIn->result;
+    }
   }
 }
