@@ -14,7 +14,6 @@
  *      don't sign extend immediate values,
  *    extra3: asserted ->
  *      use hi/lo for rs register
- *
  */
 
 #include <stdio.h>
@@ -370,7 +369,9 @@ int fill_CPUControl(InstructionFields *fields, CPUControl *controlOut)
     controlOut->regWrite = 1;
     controlOut->branch = 0;
     controlOut->jump = 0;
-    // controlOut->extra1 = 1;
+    controlOut->extra1 = 0;
+    controlOut->extra2 = 1;
+    controlOut->extra3 = 1;
     return 1;
   // lb
   case 0x20:
@@ -459,8 +460,8 @@ WORD getInstruction(WORD curPC, WORD *instructionMemory)
  * @param fieldsIn Pointer to the InstructionFields structure containing instruction fields.
  * @param rsVal Value from the rs field of the instruction.
  * @param rtVal Value from the rt field of the instruction.
- * @param reg32 Value from register 32.
- * @param reg33 Value from register 33.
+ * @param reg32 Value from register 32 (hi).
+ * @param reg33 Value from register 33 (lo).
  * @param oldPC Value of the old program counter.
  * @return The value in the rs field of the instruction.
  */
@@ -526,13 +527,17 @@ WORD getALUinput2(CPUControl *controlIn,
  * - ADD (controlIn->ALU.op == 0x02)
  * - SLT (Set on Less Than) (controlIn->ALU.op == 0x03)
  * - XOR (controlIn->ALU.op == 0x04)
+ * - NOR (controlIn->ALU.op == 0x05)
+ * - SEQ (Set on Equal) (controlIn->ALU.op == 0x06)
+ * - MULT (controlIn->ALU.op == 0x07)
+ * - MOVE (controlIn->ALU.op == 0x08)
  *
  * If the bNegate flag in the control signals is set, the second input operand
  * is negated before performing the operation.
  *
  * The result of the operation is stored in aluResultOut->result.
  * The zero flag (aluResultOut->zero) is set to 1 if the result is zero, otherwise it is set to 0.
- * The extra field (aluResultOut->extra) is currently unused and set to 0.
+ * The extra field (aluResultOut->extra) is used to store additional information based on the operation.
  */
 void execute_ALU(CPUControl *controlIn,
                  WORD input1, WORD input2,
@@ -589,7 +594,7 @@ void execute_ALU(CPUControl *controlIn,
     // Store the upper and lower 32 bits of the product in the result and
     // extra fields.
     aluResultOut->result = (product >> 32) & 0xFFFFFFFF;
-    aluResultOut->extra = (product & 0x00000000FFFFFFFF);
+    aluResultOut->extra = product & 0xFFFFFFFF;
     break;
   // move
   case 0x08:
@@ -603,20 +608,24 @@ void execute_ALU(CPUControl *controlIn,
 }
 
 /**
- * @brief Executes the memory access stage of the CPU pipeline.
+ * @brief Executes the memory stage of the MIPS pipeline.
  *
- * This function performs memory read and write operations based on the control signals.
- * If the memRead control signal is asserted, it reads a value from memory at the address
- * specified by the ALU result and stores it in the resultOut structure. If the memWrite
- * control signal is asserted, it writes the value of rtVal to the memory at the address
- * specified by the ALU result.
+ * This function simulates the memory stage of the MIPS pipeline, which includes
+ * reading from and writing to memory based on the control signals.
  *
- * @param controlIn Pointer to the CPU control signals.
- * @param aluResultIn Pointer to the ALU result structure.
- * @param rsVal Value of the source register (not used in this function).
- * @param rtVal Value of the target register, used for memory write operations.
+ * @param controlIn Pointer to the CPUControl structure containing the control signals.
+ * @param aluResultIn Pointer to the ALUResult structure containing the ALU result.
+ * @param rsVal Value of the first source register.
+ * @param rtVal Value of the second source register.
  * @param memory Pointer to the memory array.
- * @param resultOut Pointer to the structure where the memory read result will be stored.
+ * @param resultOut Pointer to the MemResult structure where the result will be stored.
+ *
+ * The function performs the following operations based on the control signals:
+ * - If memWrite is asserted, write the value of rtVal to the memory address calculated by the ALU.
+ * - If memRead is asserted, read the value from the memory address calculated by the ALU.
+ * - If extra1 is asserted, load/store bytes instead of words.
+ *
+ * The read value is stored in resultOut->readVal.
  */
 void execute_MEM(CPUControl *controlIn,
                  ALUResult *aluResultIn,
@@ -722,6 +731,20 @@ void execute_MEM(CPUControl *controlIn,
   }
 }
 
+/**
+ * @brief Determines the next program counter (PC) based on the control signals and inputs.
+ *
+ * This function calculates the next program counter (PC) based on the control signals,
+ * the ALU zero flag, and the inputs provided.
+ *
+ * @param fields Pointer to the InstructionFields structure containing the parsed instruction fields.
+ * @param controlIn Pointer to the CPUControl structure containing the control signals.
+ * @param aluZero The ALU zero flag indicating if the result of the ALU operation is zero.
+ * @param rsVal Value of the first source register.
+ * @param rtVal Value of the second source register.
+ * @param oldPC The old program counter value.
+ * @return The next program counter value.
+ */
 WORD getNextPC(InstructionFields *fields, CPUControl *controlIn, int aluZero,
                WORD rsVal, WORD rtVal,
                WORD oldPC)
@@ -758,6 +781,18 @@ WORD getNextPC(InstructionFields *fields, CPUControl *controlIn, int aluZero,
   return oldPC + 0b0100;
 }
 
+/**
+ * @brief Executes the write-back stage of the MIPS pipeline.
+ *
+ * This function writes the result of the ALU operation or memory read to the
+ * appropriate register based on the control signals.
+ *
+ * @param fields Pointer to the InstructionFields structure containing the parsed instruction fields.
+ * @param controlIn Pointer to the CPUControl structure containing the control signals.
+ * @param aluResultIn Pointer to the ALUResult structure containing the ALU result.
+ * @param memResultIn Pointer to the MemResult structure containing the memory read result.
+ * @param regs Pointer to the array of registers.
+ */
 void execute_updateRegs(InstructionFields *fields, CPUControl *controlIn,
                         ALUResult *aluResultIn, MemResult *memResultIn,
                         WORD *regs)
@@ -784,16 +819,19 @@ void execute_updateRegs(InstructionFields *fields, CPUControl *controlIn,
   }
   else if (controlIn->regWrite) // If regWrite and not memToReg, write ALU result.
   {
-    // If extra3 is asserted, use hi/lo for rs register.
     if (controlIn->extra3)
     {
       if (controlIn->extra2)
       {
+        // If extra3 and extra2, store lower 32 bits of ALU result in lo and
+        // rd, and store upper in hi.
+        regs[registerDestinationNumber] = aluResultIn->extra;
         regs[32] = (aluResultIn->result) & 0xFFFFFFFF;
         regs[33] = (aluResultIn->extra) & 0xFFFFFFFF;
       }
       else
       {
+        // If extra3 and not extra2, store ALU result (val from lo/hi) in rd.
         regs[registerDestinationNumber] = aluResultIn->result;
       }
     }
