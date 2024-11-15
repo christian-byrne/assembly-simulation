@@ -1,0 +1,27 @@
+Each testcase has a different 'BEFORE' message.
+Each testcase has a different 'BEFORE' message.
+Purple pulls ahead!  purple:986   yellow:609
+Each testcase has a different 'BEFORE' message.
+Each testcase has a different 'BEFORE' message.
+Each testcase has a different 'BEFORE' message.
+Each testcase has a different 'BEFORE' message.
+Each testcase has a different 'BEFORE' message.
+This is the tail message, with trailing constant 0x9b2b
+
++-----------------------------------------------------------+
+|    Magic Value (popped from the stack):                   |
++-----------------------------------------------------------+
+00007c02
+
++-----------------------------------------------------------+
+|    Testcase Register Dump (fp, then 8 sX regs):           |
++-----------------------------------------------------------+
+e24c21ef
+0000e3ed
+00006056
+0000296a
+00000622
+0000296a
+00009b2b
+000072d4
+000033e3

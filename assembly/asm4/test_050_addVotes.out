@@ -1,0 +1,23 @@
+Calling addVotes() from the testcase...
+Calling addVotes() from the testcase...
+Purple pulls ahead!  purple:1149   yellow:1060
+Calling addVotes() from the testcase...
+This is the tail message, with trailing constant 0x9b2b
+
++-----------------------------------------------------------+
+|    Magic Value (popped from the stack):                   |
++-----------------------------------------------------------+
+00007c02
+
++-----------------------------------------------------------+
+|    Testcase Register Dump (fp, then 8 sX regs):           |
++-----------------------------------------------------------+
+e24c21ef
+0000e3ed
+00006056
+0000296a
+00000622
+0000296a
+00009b2b
+000072d4
+000033e3
