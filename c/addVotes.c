@@ -5,37 +5,44 @@
 extern int purpleCount;
 extern int yellowCount;
 
-void addVotes(int purpleVotesAdd, int yellowVotesAdd) {
-
-  int preState;
-  if (purpleCount > yellowCount) {
-    preState = 0;
-  } else if (yellowCount > purpleCount) {
-    preState = 1;
-  } else {
-    preState = 2;
-  }
-  
+void addVotes(int purpleVotesAdd, int yellowVotesAdd)
+{
+  int preState = getElectionState();
   purpleCount += purpleVotesAdd;
   yellowCount += yellowVotesAdd;
-
-  int postState;
-  if (purpleCount > yellowCount) {
-    postState = 0;
-  } else if (yellowCount > purpleCount) {
-    postState = 1;
-  } else {
-    postState = 2;
-  }
-
-  if (postState == 2) {
+  int postState = getElectionState();
+  if (preState == -1)
+    return;
+  if (postState == 2)
     printf("TIED!!!\n");
-  } else if (postState != preState) {
-    if (postState == 0) {
+  if (preState == 2)
+    return; 
+  else if (postState != preState)
+  {
+    if (postState == 0)
+    {
       printf("Purple pulls ahead!  purple: %d   yellow: %d\n", purpleCount, yellowCount);
-    } else {
+    }
+    else
+    {
       prinf("Yellow pulls ahead!  purple: %d   yellow: %d\n", purpleCount, yellowCount);
     }
   }
+}
 
+int getElectionState()
+{
+  if (purpleCount == 0 && yellowCount == 0)
+  {
+    return -1;
+  }
+  if (purpleCount > yellowCount)
+  {
+    return 0;
+  }
+  else if (yellowCount > purpleCount)
+  {
+    return 1;
+  }
+  return 2;
 }
