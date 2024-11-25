@@ -1,7 +1,10 @@
     # AUTHOR:       Christian Byrne
     # FILE:         asm5.s
     # COURSE:       CSc 252
-    # PROGRAM DESC:
+    # PROGRAM DESC: This program implements the merge() and quicksort() functions
+    #               in MIPS assembly. The merge() function merges two sorted
+    #               arrays into a single sorted array. The quicksort() function
+    #               sorts an array of integers using the quicksort algorithm.
 
 
 .data
@@ -56,7 +59,7 @@ merge:
     addi    $fp,                $sp,        20
 
     # Save $sX registers being used
-    addiu   $sp,                $sp,        -36         # allocate space for saved regs and array
+    addiu   $sp,                $sp,        -36         # allocate space for saved regs
     sw      $s0,                0($sp)                  # save s0
     sw      $s1,                4($sp)                  # save s1
     sw      $s2,                8($sp)                  # save s2
@@ -124,7 +127,6 @@ PopB:
 
 EndPop:
     addi    $s7,                $s7,        1           # posA + posB++
-    # TODO: save any temp registers if they are needing to be persisted before calling merge debug
     add     $a0,                $s6,        $zero       # a0 = address of out
     add     $a1,                $s7,        $zero       # a1 = posA + posB
     jal     merge_debug
@@ -140,7 +142,7 @@ MEpilogue:
     lw      $s5,                20($sp)                 # restore s5
     lw      $s6,                24($sp)                 # restore s6
     lw      $s7,                28($sp)                 # restore s7
-    addiu   $sp,                $sp,        36          # deallocate space for saved regs and array
+    addiu   $sp,                $sp,        36          # deallocate space for saved regs
 
     # Epilogue
     lw      $ra,                0($sp)
@@ -205,7 +207,7 @@ quicksort:
     addi    $fp,                $sp,        20
 
     # Save $sX registers being used
-    addiu   $sp,                $sp,        -36         # allocate space for saved regs and array
+    addiu   $sp,                $sp,        -36         # allocate space for saved regs
     sw      $s0,                0($sp)                  # save s0
     sw      $s1,                4($sp)                  # save s1
     sw      $s2,                8($sp)                  # save s2
@@ -222,6 +224,12 @@ quicksort:
     add     $s3,                $a1,        $zero       # s3 = n
     lw      $s4,                0($s2)                  # s4 = data[0] = pivot
 
+    # base case: if n < 2, return
+    addi    $t6,                $zero,      2           # t6 = 2
+    slt     $t7,                $s3,        $t6         # t7 = n < 2 ? 1 : 0
+    addi    $t6,                $zero,      1           # t6 = 1
+    beq     $t7,                $t6,        QSEpilogue  # if n < 2 (base case), return
+
 WhileQS:
     # Check break conditions
     slt     $t0,                $s1,        $s0         # t0 = right < left ? 1 : 0
@@ -232,56 +240,50 @@ WhileQS:
     add     $a1,                $s3,        $zero       # a1 = n
     add     $a2,                $s0,        $zero       # a2 = left
     add     $a3,                $s1,        $zero       # a3 = right
-    jal     quicksort_debug
+    jal     quicksort_debug                             # quicksort_debug(data, n, left, right)
     j       IterLeft
 
 IterLeft:
     # Check break condition - left passed right
     slt     $t0,                $s1,        $s0         # t0 = right < left ? 1 : 0
-    bne     $t0,                $zero,      IL_Break    # if right < left, finished
+    addi    $t6,                $zero,      1           # t6 = 1
+    beq     $t0,                $t6,        LoopBreak   # if right < left, finished
 
-    # Check break condition - data[left] <= pivot (hit a value that is greater than pivot and needs swap)
+    # Check break condition - data[left] <= pivot (hit valid swap)
     sll     $t1,                $s0,        2           # t1 = left * 4
     add     $t1,                $t1,        $s2         # t1 = address of data[left]
     lw      $t2,                0($t1)                  # t2 = data[left]
     slt     $t3,                $s4,        $t2         # t3 = pivot < data[left] ? 1 : 0
-    bne     $t3,                $zero,      IL_Break    # if pivot < data[left]
-
+    bne     $t3,                $zero,      IterRight   # if pivot < data[left], go to IterRight
     addi    $s0,                $s0,        1           # left++
     j       IterLeft
-
-IL_Break:
-    j       IterRight
 
 IterRight:
     # Check break condition - left passed right
     slt     $t0,                $s1,        $s0         # t0 = right < left ? 1 : 0
-    bne     $t0,                $zero,      IR_Break    # if right < left, finished
+    addi    $t6,                $zero,      1           # t6 = 1
+    beq     $t0,                $t6,        LoopBreak   # if right < left, finished
 
-    # Check break condition - data[right] > pivot (hit a value that is less than pivot and needs swap)
+    # Check break condition - data[right] > pivot (hit valid swap)
     sll     $t1,                $s1,        2           # t1 = right * 4
     add     $t1,                $t1,        $s2         # t1 = address of data[right]
     lw      $t2,                0($t1)                  # t2 = data[right]
-    slt     $t3,                $t2,        $s4         # t3 = data[right] < pivot ? 1 : 0
-    bne     $t3,                $zero,      IR_Break    # if data[right] < pivot
-
+    slt     $t3,                $s4,        $t2         # t3 = pivot < data[right] ? 1 : 0
+    beq     $t3,                $zero,      Swap        # break if pivot <= data[right]
     addi    $s1,                $s1,        -1          # right--
     j       IterRight
-
-IR_Break:
-    j       Swap
 
 Swap:
     # Check break condition - left passed right
     slt     $t0,                $s0,        $s1         # t0 = left < right ? 1 : 0
-    bne     $t0,                $zero,      LoopBreak   # if left < right, finished
+    beq     $t0,                $zero,      LoopBreak   # if left < right, finished
 
     # Call quicksort_debug
     add     $a0,                $s2,        $zero       # a0 = address of data
     add     $a1,                $s3,        $zero       # a1 = n
     add     $a2,                $s0,        $zero       # a2 = left
     add     $a3,                $s1,        $zero       # a3 = right
-    jal     quicksort_debug
+    jal     quicksort_debug                             # quicksort_debug(data, n, left, right)
 
     # Swap data[left] and data[right]
     sll     $t1,                $s0,        2           # t1 = left * 4
@@ -293,6 +295,7 @@ Swap:
     sw      $t4,                0($t1)                  # data[left] = data[right]
     sw      $t3,                0($t2)                  # data[right] = data[left]
 
+    # Increment left and decrement right
     addi    $s0,                $s0,        1           # left++
     addi    $s1,                $s1,        -1          # right--
     j       WhileQS
@@ -303,42 +306,40 @@ LoopBreak:
     add     $a1,                $s3,        $zero       # a1 = n
     add     $a2,                $s0,        $zero       # a2 = left
     add     $a3,                $s1,        $zero       # a3 = right
-    jal     quicksort_debug
+    jal     quicksort_debug                             # quicksort_debug(data, n, left, right)
 
-    # Swap data[0] and data[left-1]
-    sll     $t1,                $s0,        2           # t1 = left * 4
-    add     $t1,                $t1,        $s2         # t1 = address of data[left]
-    lw      $t2,                0($t1)                  # t2 = data[left]
-    sll     $t3,                $s3,        2           # t3 = n * 4
-    add     $t3,                $t3,        $s2         # t3 = address of data[n]
-    lw      $t4,                0($t3)                  # t4 = data[n]
-    sw      $t4,                0($t1)                  # data[left] = data[n]
-    sw      $t2,                0($t3)                  # data[n] = data[left]
+    # Swap data[0] (pivot) and data[left-1] (correct position for pivot after partitioning)
+    addi    $t1,                $s0,        -1          # t1 = left - 1
+    sll     $t1,                $t1,        2           # t1 = (left - 1) * 4
+    add     $t1,                $t1,        $s2         # t1 = address of data[left-1]
+    lw      $t2,                0($t1)                  # t2 = data[left-1]
+    sw      $s4,                0($t1)                  # data[left-1] = data[0]
+    sw      $t2,                0($s2)                  # data[0] = data[left-1]
 
     # Call quicksort_debug
     add     $a0,                $s2,        $zero       # a0 = address of data
     add     $a1,                $s3,        $zero       # a1 = n
     addi    $a2,                $zero,      -1          # a2 = -1
     addi    $a3,                $zero,      -1          # a3 = -1
-    jal     quicksort_debug
+    jal     quicksort_debug                             # quicksort_debug(data, n, -1, -1)
 
     # Call quicksort(data, left-1)
     add     $a0,                $s2,        $zero       # a0 = address of data
-    add     $a1,                $s0,        $zero       # a1 = left-1
-    jal     quicksort
+    addi    $a1,                $s0,        -1          # a1 = left-1
+    jal     quicksort                                   # recursive case: quicksort(data, left-1)
 
     # Call quicksort(data+left, n-left)
     sll     $t0,                $s0,        2           # t0 = left * 4
     add     $a0,                $s2,        $t0         # a0 = address of data + left * 4
     sub     $a1,                $s3,        $s0         # a1 = n - left
-    jal     quicksort
+    jal     quicksort                                   # recursive case: quicksort(data+left, n-left)
 
     # Call quicksort_debug
     add     $a0,                $s2,        $zero       # a0 = address of data
     add     $a1,                $s3,        $zero       # a1 = n
     addi    $a2,                $zero,      -1          # a2 = -1
     addi    $a3,                $zero,      -1          # a3 = -1
-    jal     quicksort_debug
+    jal     quicksort_debug                             # quicksort_debug(data, n, -1, -1)
 
 QSEpilogue:
     # Restore $sX registers
@@ -350,7 +351,7 @@ QSEpilogue:
     lw      $s5,                20($sp)                 # restore s5
     lw      $s6,                24($sp)                 # restore s6
     lw      $s7,                28($sp)                 # restore s7
-    addiu   $sp,                $sp,        36          # deallocate space for saved regs and array
+    addiu   $sp,                $sp,        36          # deallocate space for saved regs
 
     # Epilogue
     lw      $ra,                0($sp)
