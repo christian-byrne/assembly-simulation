@@ -1,0 +1,26 @@
+bst_search() returned NULL
+bst_search() returned NULL
+bst_search() returned an object:  key=-9
+bst_search() returned NULL
+bst_search() returned an object:  key=21
+bst_search() returned NULL
+bst_search() returned NULL
+bst_search() returned an object:  key=22
+
++-----------------------------------------------------------+
+|    Magic Value (popped from the stack):                   |
++-----------------------------------------------------------+
+d5c1e201
+
++-----------------------------------------------------------+
+|    Testcase Register Dump (fp, then 8 sX regs):           |
++-----------------------------------------------------------+
+8539b61b
+b61b4a4b
+4a4b0843
+0843c42d
+c42d48ad
+48ad1a34
+1a340065
+006556ce
+56ced5c1
